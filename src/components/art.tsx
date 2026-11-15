@@ -46,18 +46,7 @@ export function PixelSprite({ name, size = 40, bob = false, className }: { name:
   )
 }
 
-export function LogoMark({ size = 28 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden>
-      <defs>
-        <linearGradient id="lm-top" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#8bf0a8" />
-          <stop offset="1" stopColor="#34c26a" />
-        </linearGradient>
-      </defs>
-      <polygon points="32,6 56,19 32,32 8,19" fill="url(#lm-top)" />
-      <polygon points="8,19 32,32 32,58 8,45" fill="#1f9450" />
-      <polygon points="56,19 32,32 32,58 56,45" fill="#0f5a30" />
-    </svg>
-  )
+export function LogoMark({ size = 32 }: { size?: number }) {
+  // The app icon itself (a 32x32 pixel grid), so the sidebar and the Start menu show the same mark.
+  return <img src="/logo-pixel.png" alt="" aria-hidden width={size} height={size} style={{ imageRendering: 'pixelated' }} />
 }

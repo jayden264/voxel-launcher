@@ -1353,6 +1353,60 @@ async fn check_update(manual: bool, state: State<'_, AppState>) -> CmdResult<Upd
     Ok(UpdateCheck { configured: true, current, update })
 }
 
+#[derive(Clone, Serialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+enum UpdateEvent {
+    Stage { label: String },
+    Progress { done: u64, total: u64 },
+    /// The installer is running; the launcher closes now and the installer reopens it.
+    Restarting,
+}
+
+/// Update in one go: ask GitHub for the newest release again (the address is never taken from the
+/// UI), download its installer, verify the checksum GitHub published for it, start it and quit.
+/// The installer shows a small progress window and reopens the launcher when it is done.
+#[tauri::command]
+async fn install_update(on_event: Channel<UpdateEvent>, app: AppHandle, state: State<'_, AppState>) -> CmdResult<()> {
+    let (owner, repo) = updater::parse_repo(env!("CARGO_PKG_REPOSITORY")).ok_or("还没有设置开源地址，无法更新")?;
+    // Not in the middle of a download or install of something else.
+    let (_guard, _token) = acquire_busy(&state.0)?;
+    let say = |label: &str| {
+        let _ = on_event.send(UpdateEvent::Stage { label: label.to_string() });
+    };
+
+    say("正在查询最新版本");
+    let info = updater::check(updater::GITHUB_API, (&owner, &repo), env!("CARGO_PKG_VERSION"), Duration::from_secs(10))
+        .await
+        .map_err(err)?
+        .ok_or("已经是最新版本了")?;
+    let url = info.installer_url.clone().ok_or("这个版本没有附带安装包，请手动下载")?;
+    let name: String = url.rsplit('/').next().unwrap_or("").chars().filter(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_')).collect();
+    let dir = std::env::temp_dir().join("voxel-update");
+    let _ = std::fs::remove_dir_all(&dir);
+    let dest = dir.join(if name.to_ascii_lowercase().ends_with(".exe") { name } else { "voxel-setup.exe".to_string() });
+
+    say("正在下载更新");
+    let last = Mutex::new(std::time::Instant::now() - Duration::from_secs(1));
+    let report = |done: u64, total: u64| {
+        let mut t = last.lock().unwrap();
+        if done >= total || t.elapsed() >= Duration::from_millis(100) {
+            *t = std::time::Instant::now();
+            let _ = on_event.send(UpdateEvent::Progress { done, total });
+        }
+    };
+    updater::download_installer(&url, &dest, info.installer_sha256.as_deref(), info.installer_size, &updater::DownloadPolicy::github(), &report)
+        .await
+        .map_err(err)?;
+
+    say("正在安装");
+    updater::launch_installer(&dest).map_err(err)?;
+    let _ = on_event.send(UpdateEvent::Restarting);
+    // Give the UI a moment to say so, then get out of the installer's way.
+    tokio::time::sleep(Duration::from_millis(900)).await;
+    app.exit(0);
+    Ok(())
+}
+
 /// "Skip this version": the startup check stays quiet until a newer one comes out.
 #[tauri::command]
 fn ignore_update(version: String, state: State<AppState>) -> CmdResult<()> {
@@ -1602,6 +1656,7 @@ pub fn run() {
             clone_instance,
             export_instance_pack,
             check_update,
+            install_update,
             ignore_update,
             export_diagnostics,
             java_check,

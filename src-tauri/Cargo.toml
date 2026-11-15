@@ -1,6 +1,6 @@
 [package]
 name = "voxel-launcher"
-version = "0.1.0"
+version = "0.1.1"
 description = "A modern Minecraft launcher"
 # Where releases are published; the launcher asks this repository whether a newer version exists.
 repository = "https://github.com/jayden264/voxel-launcher"

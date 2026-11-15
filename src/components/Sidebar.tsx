@@ -51,7 +51,7 @@ export function Sidebar() {
     <nav className="flex shrink-0 pr-3 pb-5 pl-4">
       <Bezel radius={30} className="h-full" coreClassName="flex w-[78px] flex-col items-center gap-1 px-2 py-3">
         <div className="mb-3 grid size-11 place-items-center">
-          <LogoMark size={30} />
+          <LogoMark size={32} />
         </div>
         <div className="flex w-full flex-col gap-1">{ITEMS.map((i) => item(i.page, i.label, i.icon))}</div>
         <div className="mt-auto flex w-full flex-col items-center gap-2">

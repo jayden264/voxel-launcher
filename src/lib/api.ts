@@ -160,12 +160,18 @@ export interface PackExport {
   size: number
 }
 
+/** Progress of an in-place update. */
+export type UpdateEvent = { type: 'stage'; label: string } | { type: 'progress'; done: number; total: number } | { type: 'restarting' }
+
 export interface UpdateInfo {
   version: string
   /** Release notes (Markdown). */
   notes: string
   url: string
   installer_url: string | null
+  /** GitHub's SHA-256 for the installer; without it the update cannot be installed automatically. */
+  installer_sha256: string | null
+  installer_size: number | null
 }
 
 export interface UpdateCheck {
@@ -428,6 +434,13 @@ const real = {
     call<PackExport>('export_instance_pack', { id, name, version, includeSaves, includeOptions }),
   checkUpdate: (manual: boolean) => call<UpdateCheck>('check_update', { manual }),
   ignoreUpdate: (version: string) => call<void>('ignore_update', { version }),
+  /** Download, verify and install the newest release, then restart. Resolves only if it fails. */
+  installUpdate: async (on: (e: UpdateEvent) => void): Promise<void> => {
+    const { Channel } = await import('@tauri-apps/api/core')
+    const ch = new Channel<UpdateEvent>()
+    ch.onmessage = on
+    return call<void>('install_update', { onEvent: ch })
+  },
   /** Save a diagnostics zip to Downloads and show it in Explorer. */
   exportDiagnostics: (instanceId: string | null) => call<DiagResult>('export_diagnostics', { instanceId }),
   javaCheck: (instanceId: string) => call<JavaCheck>('java_check', { instanceId }),
@@ -595,7 +608,7 @@ let mock: Snapshot = {
       running: null,
     },
   ],
-  system: { max_mem_mb: 12288, recommended_mem_mb: 4096, mica: false, version: '0.1.0', repo_url: 'https://github.com/acme/voxel' },
+  system: { max_mem_mb: 12288, recommended_mem_mb: 4096, mica: false, version: '0.1.1', repo_url: 'https://github.com/acme/voxel' },
   data_dir: 'C:\\Users\\you\\AppData\\Roaming\\MinecraftLauncher',
 }
 const snap = () => structuredClone(mock)
@@ -904,9 +917,19 @@ const fakeApi: typeof real = {
   },
   checkUpdate: async (manual) => {
     await sleep(600)
-    return { configured: true, current: '0.1.0', update: manual ? null : { version: '0.2.0', notes: '## 这次更新\n- 新增：存档备份与回退\n- 新增：服务器列表\n- 修复：若干崩溃问题', url: 'https://github.com/acme/voxel/releases/tag/v0.2.0', installer_url: null } }
+    return { configured: true, current: '0.1.0', update: manual ? null : { version: '0.2.0', notes: '## 这次更新\n- 新增：存档备份与回退\n- 新增：服务器列表\n- 修复：若干崩溃问题', url: 'https://github.com/acme/voxel/releases/tag/v0.2.0', installer_url: 'https://github.com/acme/voxel/releases/download/v0.2.0/Voxel_0.2.0_x64-setup.exe', installer_sha256: 'a'.repeat(64), installer_size: 4_600_000 } }
   },
   ignoreUpdate: async () => {},
+  installUpdate: async (on) => {
+    on({ type: 'stage', label: '正在下载更新' })
+    for (let i = 1; i <= 20; i++) {
+      await sleep(120)
+      on({ type: 'progress', done: i * 230_000, total: 4_600_000 })
+    }
+    on({ type: 'stage', label: '正在安装' })
+    await sleep(600)
+    on({ type: 'restarting' })
+  },
   exportDiagnostics: async () => {
     await sleep(800)
     return { path: 'C:/Users/<user>/Downloads/voxel-diagnostics-20261115-120000.zip', folder: 'Downloads' }

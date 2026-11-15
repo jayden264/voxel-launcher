@@ -41,7 +41,9 @@ npx tsc -b             # 前端类型检查
 
 ## 发布新版本
 
-启动器启动时会向 GitHub 查询最新的 Release。发布新版本时：把 `src-tauri/Cargo.toml` 和 `src-tauri/tauri.conf.json` 里的版本号改高，打包后在 GitHub 新建一个 Release，标签写成 `v` 加版本号（例如 `v0.2.0`），并把安装包附到 Release 上。
+启动器启动时会向 GitHub 查询最新的 Release。发现新版本后，用户点「立即更新」，启动器会自动下载安装包、用 GitHub 提供的 SHA-256 校验、安装并重新打开，不用手动操作；没有校验值或校验不通过时不会安装，只会引导到下载页。
+
+发布新版本时：把 `package.json`、`src-tauri/Cargo.toml` 和 `src-tauri/tauri.conf.json` 里的版本号改高，打包后在 GitHub 新建一个 Release，标签写成 `v` 加版本号（例如 `v0.2.0`），并把 `.exe` 安装包附到 Release 上。
 
 ## 致谢
 
