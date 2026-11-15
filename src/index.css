@@ -1,0 +1,941 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: "Geist Variable", "Microsoft YaHei UI", "PingFang SC", system-ui, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --color-brand: var(--brand);
+  --color-brand-2: var(--brand-2);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+}
+
+/* One dark theme. Brand = grass green. */
+:root {
+  --background: oklch(0.17 0.02 250);
+  --foreground: oklch(0.97 0.005 250);
+  --card: oklch(0.21 0.02 250);
+  --card-foreground: oklch(0.97 0.005 250);
+  --popover: oklch(0.22 0.022 250);
+  --popover-foreground: oklch(0.97 0.005 250);
+  --primary: oklch(0.8 0.19 152);
+  --primary-foreground: oklch(0.18 0.04 152);
+  --secondary: oklch(0.27 0.02 250);
+  --secondary-foreground: oklch(0.97 0.005 250);
+  --muted: oklch(0.27 0.02 250);
+  --muted-foreground: oklch(0.72 0.02 250);
+  --accent: oklch(0.3 0.025 250);
+  --accent-foreground: oklch(0.97 0.005 250);
+  --destructive: oklch(0.7 0.19 22);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 14%);
+  --ring: oklch(0.8 0.19 152 / 60%);
+  --radius: 0.75rem;
+  --hue-a: 152;
+  --hue-b: 195;
+  --brand: oklch(0.8 0.19 var(--hue-a));
+  --brand-2: oklch(0.72 0.17 var(--hue-b));
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    overflow: hidden;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+  html {
+    @apply font-sans;
+    color-scheme: dark;
+  }
+  /* Windows 11: let Mica show through. Elsewhere the solid gradient below is used. */
+  html[data-mica="1"],
+  html[data-mica="1"] body {
+    background: transparent;
+  }
+  input,
+  textarea,
+  .selectable {
+    user-select: text;
+  }
+}
+
+@layer components {
+  /* Translucent panel: semi-opaque colour + hairline border (no backdrop-filter: cheap on the GPU). */
+  .panel {
+    background: color-mix(in oklch, var(--card) 62%, transparent);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 1px 0 oklch(1 0 0 / 5%) inset, 0 10px 30px -18px oklch(0 0 0 / 60%);
+  }
+  .panel-hover {
+    transition: border-color 0.2s, background 0.2s, transform 0.2s;
+  }
+  .panel-hover:hover {
+    border-color: color-mix(in oklch, var(--brand) 35%, transparent);
+    background: color-mix(in oklch, var(--card) 80%, transparent);
+  }
+  .brand-gradient {
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  }
+  .text-brand-gradient {
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .eyebrow {
+    @apply text-[11px] font-medium tracking-[0.14em] text-muted-foreground uppercase;
+  }
+}
+
+/* App backdrop: layered gradients so the window still looks rich without Mica. */
+.app-backdrop {
+  background:
+    radial-gradient(900px 500px at 85% -10%, oklch(0.5 0.14 var(--hue-b) / 28%), transparent 60%),
+    radial-gradient(700px 480px at -5% 105%, oklch(0.45 0.13 var(--hue-a) / 24%), transparent 60%),
+    linear-gradient(160deg, oklch(0.19 0.025 252), oklch(0.14 0.02 255));
+}
+/* OLED: true black, with only a faint glow of the accent left. */
+html[data-oled="1"] .app-backdrop {
+  background:
+    radial-gradient(900px 500px at 85% -10%, oklch(0.5 0.14 var(--hue-b) / 10%), transparent 60%),
+    radial-gradient(700px 480px at -5% 105%, oklch(0.45 0.13 var(--hue-a) / 8%), transparent 60%),
+    #000;
+}
+html[data-mica="1"] .app-backdrop {
+  background:
+    radial-gradient(900px 500px at 85% -10%, oklch(0.5 0.14 175 / 22%), transparent 60%),
+    radial-gradient(700px 480px at -5% 105%, oklch(0.45 0.13 150 / 18%), transparent 60%),
+    oklch(0.14 0.02 252 / 72%);
+}
+
+/* Slim scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(1 0 0 / 18%) transparent;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(1 0 0 / 16%);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(1 0 0 / 28%);
+}
+
+/* ===== Motion tokens ===== */
+:root {
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+/* Thin, precise icon strokes everywhere (lucide defaults to a heavy 2). */
+svg.lucide {
+  stroke-width: 1.5;
+}
+
+/* ===== Pixel scenes ===== */
+.scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  container-type: size;
+}
+.scene-stack {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: max(100cqw, 177.78cqh);
+  aspect-ratio: 16 / 9;
+  translate: -50% 0;
+  scale: 1;
+  transition: scale 1200ms var(--ease);
+}
+.group:hover .scene-stack {
+  scale: 1.05;
+}
+.px-img {
+  image-rendering: pixelated;
+  user-select: none;
+  pointer-events: none;
+}
+.px-glow {
+  position: absolute;
+  width: 46%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 9999px;
+  will-change: transform, opacity;
+  animation: glow-pulse 7s cubic-bezier(0.4, 0.1, 0.2, 1) infinite alternate;
+}
+.px-clouds {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 200%;
+  height: 100%;
+  will-change: transform;
+  animation: drift 140s linear infinite;
+}
+.px-clouds img {
+  width: 100%;
+  height: 100%;
+}
+.px-p {
+  position: absolute;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation-duration: var(--dur, 8s);
+  animation-iteration-count: infinite;
+  animation-timing-function: cubic-bezier(0.25, 0.6, 0.5, 1);
+}
+.px-p--ember,
+.px-p--ender,
+.px-p--pollen {
+  animation-name: rise;
+}
+.px-p--snow {
+  animation-name: fall;
+}
+.px-p--dust {
+  animation-name: dust;
+}
+.px-p--firefly {
+  animation-name: blink;
+  animation-timing-function: cubic-bezier(0.4, 0.1, 0.2, 1);
+}
+@keyframes glow-pulse {
+  from {
+    transform: scale(0.92);
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+@keyframes drift {
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+@keyframes rise {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate3d(var(--dx, 0px), -90px, 0);
+    opacity: 0;
+  }
+}
+@keyframes fall {
+  0% {
+    transform: translate3d(0, -10px, 0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(var(--dx, 0px), 130px, 0);
+    opacity: 0;
+  }
+}
+@keyframes dust {
+  0% {
+    transform: translate3d(-20px, 0, 0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate3d(110px, -16px, 0);
+    opacity: 0;
+  }
+}
+@keyframes blink {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  60% {
+    transform: translate3d(var(--dx, 0px), -18px, 0);
+    opacity: 0.2;
+  }
+  80% {
+    opacity: 0.9;
+  }
+}
+
+.px-bob {
+  animation: bob 3.6s cubic-bezier(0.4, 0.1, 0.2, 1) infinite alternate;
+  will-change: transform;
+}
+@keyframes bob {
+  from {
+    transform: translate3d(0, 2px, 0);
+  }
+  to {
+    transform: translate3d(0, -6px, 0);
+  }
+}
+
+/* ===== Double bezel ===== */
+.bezel {
+  padding: 6px;
+  border-radius: var(--r, 28px);
+  background: oklch(1 0 0 / 4%);
+  box-shadow:
+    0 0 0 1px oklch(1 0 0 / 7%),
+    0 34px 64px -38px oklch(0.8 0.19 152 / 20%);
+  transition:
+    translate 700ms var(--ease),
+    box-shadow 700ms var(--ease),
+    background 700ms var(--ease);
+}
+.bezel-core {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  border-radius: calc(var(--r, 28px) - 6px);
+  background: linear-gradient(180deg, oklch(0.22 0.022 250 / 92%), oklch(0.185 0.02 250 / 92%));
+  box-shadow: inset 0 1px 1px oklch(1 0 0 / 12%);
+}
+.bezel-interactive:hover {
+  translate: 0 -3px;
+  background: oklch(1 0 0 / 6%);
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--brand) 42%, transparent),
+    0 40px 72px -36px color-mix(in oklch, var(--brand) 50%, transparent);
+}
+
+/* ===== Pill buttons (button-in-button) ===== */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform 500ms var(--ease),
+    background 500ms var(--ease),
+    box-shadow 500ms var(--ease),
+    opacity 300ms var(--ease);
+}
+.pill:active {
+  transform: scale(0.98);
+}
+.pill:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.pill:not(:has(.pill-icon)) {
+  padding-right: 18px;
+}
+.pill--sm {
+  padding: 5px 5px 5px 14px;
+  font-size: 0.8125rem;
+  gap: 0.6rem;
+}
+.pill--md {
+  padding: 7px 7px 7px 18px;
+  font-size: 0.875rem;
+}
+.pill--xl {
+  padding: 9px 9px 9px 30px;
+  font-size: 1.0625rem;
+  gap: 1.4rem;
+}
+.pill-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  transition:
+    transform 600ms var(--ease),
+    background 400ms var(--ease);
+}
+.pill--sm .pill-icon {
+  width: 26px;
+  height: 26px;
+}
+.pill--md .pill-icon {
+  width: 32px;
+  height: 32px;
+}
+.pill--xl .pill-icon {
+  width: 46px;
+  height: 46px;
+}
+.pill:hover .pill-icon {
+  transform: translate(2px, -1px) scale(1.08);
+}
+.pill--brand {
+  color: oklch(0.16 0.04 160);
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  box-shadow:
+    0 12px 36px -14px var(--brand),
+    inset 0 1px 0 oklch(1 0 0 / 38%);
+}
+.pill--brand .pill-icon {
+  background: oklch(0.16 0.04 160 / 14%);
+}
+.pill--brand:hover {
+  box-shadow:
+    0 16px 44px -12px var(--brand),
+    inset 0 1px 0 oklch(1 0 0 / 45%);
+}
+.pill--soft {
+  color: var(--foreground);
+  background: oklch(1 0 0 / 8%);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 10%);
+}
+.pill--soft .pill-icon {
+  background: oklch(1 0 0 / 10%);
+}
+.pill--soft:hover {
+  background: oklch(1 0 0 / 13%);
+}
+.pill--ghost {
+  color: var(--muted-foreground);
+}
+.pill--ghost .pill-icon {
+  background: oklch(1 0 0 / 7%);
+}
+.pill--ghost:hover {
+  color: var(--foreground);
+  background: oklch(1 0 0 / 7%);
+}
+.pill--danger {
+  color: white;
+  background: linear-gradient(135deg, oklch(0.66 0.21 25), oklch(0.58 0.21 18));
+  box-shadow:
+    0 12px 36px -14px oklch(0.66 0.21 25),
+    inset 0 1px 0 oklch(1 0 0 / 30%);
+}
+.pill--danger .pill-icon {
+  background: oklch(1 0 0 / 18%);
+}
+
+.eyebrow-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--brand);
+  background: color-mix(in oklch, var(--brand) 12%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--brand) 26%, transparent);
+}
+
+/* ===== Segmented pixel progress bar ===== */
+.px-bar {
+  position: relative;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: oklch(1 0 0 / 8%);
+  -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 9px, transparent 9px 12px);
+  mask-image: repeating-linear-gradient(90deg, #000 0 9px, transparent 9px 12px);
+}
+.px-bar > .px-bar-fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .px-glow,
+  .px-clouds,
+  .progress-shimmer {
+    animation: none !important;
+  }
+  .px-p {
+    display: none;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+.progress-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--brand) 0%,
+    var(--brand-2) 40%,
+    oklch(0.95 0.08 170) 50%,
+    var(--brand-2) 60%,
+    var(--brand) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2.4s linear infinite;
+}
+
+/* =====================================================================
+   Pixel controls — blocky bevels and stepped corners, with glass used
+   only where something floats (the select popup). Small controls
+   (switch, checkbox, primary buttons) stay solid so they read instantly.
+   ===================================================================== */
+:root {
+  /* A 4px "staircase" corner, for fills that need a pixel silhouette. */
+  --px-cut: polygon(
+    0 4px, 4px 4px, 4px 0,
+    calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px,
+    100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%,
+    4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px)
+  );
+  --px-cut-sm: polygon(
+    0 2px, 2px 2px, 2px 0,
+    calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px,
+    100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%,
+    2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px)
+  );
+  --px-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* 4x4 checkerboard used as a faint dither. */
+  --px-dither: conic-gradient(oklch(1 0 0 / 5%) 25%, transparent 0 50%, oklch(1 0 0 / 5%) 0 75%, transparent 0);
+}
+
+/* ---------- Select: trigger ---------- */
+.px-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 14px 0 16px;
+  border-radius: 14px;
+  font-size: 0.875rem;
+  text-align: left;
+  color: var(--foreground);
+  cursor: pointer;
+  outline: none;
+  background:
+    linear-gradient(180deg, oklch(1 0 0 / 7%), oklch(1 0 0 / 2%)),
+    oklch(0.15 0.02 250 / 72%);
+  /* Bevel: hairline ring, lit top edge, a 3px shaded "step" underneath. */
+  box-shadow:
+    inset 0 0 0 1px oklch(1 0 0 / 9%),
+    inset 0 1px 0 oklch(1 0 0 / 15%),
+    inset 0 -3px 0 oklch(0 0 0 / 26%);
+  transition:
+    box-shadow 450ms var(--ease),
+    transform 450ms var(--ease),
+    background 450ms var(--ease);
+}
+.px-select-trigger:hover {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklch, var(--brand) 42%, transparent),
+    inset 0 1px 0 oklch(1 0 0 / 20%),
+    inset 0 -3px 0 oklch(0 0 0 / 26%),
+    0 10px 30px -16px color-mix(in oklch, var(--brand) 60%, transparent);
+}
+.px-select-trigger:active {
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklch, var(--brand) 42%, transparent),
+    inset 0 1px 0 oklch(1 0 0 / 12%),
+    inset 0 -1px 0 oklch(0 0 0 / 26%);
+}
+.px-select-trigger:focus-visible,
+.px-select-trigger[data-popup-open] {
+  box-shadow:
+    inset 0 0 0 1px var(--brand),
+    inset 0 1px 0 oklch(1 0 0 / 20%),
+    inset 0 -3px 0 oklch(0 0 0 / 26%),
+    0 0 0 4px color-mix(in oklch, var(--brand) 18%, transparent);
+}
+.px-select-chevron {
+  display: grid;
+  place-items: center;
+  color: var(--muted-foreground);
+  transition:
+    transform 500ms var(--px-overshoot),
+    color 300ms var(--ease);
+}
+.px-select-trigger[data-popup-open] .px-select-chevron {
+  transform: rotate(180deg);
+  color: var(--brand);
+}
+
+/* ---------- Select: popup (frosted, it floats above the page) ---------- */
+.px-select-popup {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: var(--anchor-width);
+  max-height: min(var(--available-height, 340px), 340px);
+  padding: 6px;
+  overflow: hidden;
+  border-radius: 18px;
+  color: var(--foreground);
+  background: linear-gradient(180deg, oklch(0.3 0.03 250 / 74%), oklch(0.2 0.026 250 / 80%));
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  backdrop-filter: blur(22px) saturate(1.6);
+  box-shadow:
+    0 0 0 1px oklch(1 0 0 / 13%),
+    inset 0 1px 0 oklch(1 0 0 / 24%),
+    0 34px 60px -22px oklch(0 0 0 / 60%),
+    0 0 46px -14px color-mix(in oklch, var(--brand) 38%, transparent);
+  transform-origin: var(--transform-origin);
+  transition:
+    opacity 240ms var(--ease),
+    transform 380ms var(--ease);
+  outline: none;
+}
+/* Dither veil fading out downwards: the "pixel" in the glass. */
+.px-select-popup::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: var(--px-dither) 0 0 / 4px 4px;
+  -webkit-mask-image: linear-gradient(180deg, #000, transparent 65%);
+  mask-image: linear-gradient(180deg, #000, transparent 65%);
+}
+.px-select-popup[data-starting-style],
+.px-select-popup[data-ending-style] {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.95);
+}
+.px-select-list {
+  position: relative;
+  overflow-y: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklch, var(--brand) 55%, transparent) transparent;
+}
+
+/* ---------- Select: rows ---------- */
+.px-select-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px 9px 28px;
+  font-size: 0.875rem;
+  color: oklch(1 0 0 / 76%);
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  opacity: 0;
+  animation: px-item-in 420ms var(--ease) forwards;
+  animation-delay: calc(min(var(--i, 0), 9) * 24ms + 50ms);
+  transition: color 250ms var(--ease);
+}
+@keyframes px-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* Stepped highlight that slides in. */
+.px-select-item::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: var(--px-cut);
+  background: linear-gradient(90deg, color-mix(in oklch, var(--brand) 30%, transparent), color-mix(in oklch, var(--brand) 10%, transparent));
+  opacity: 0;
+  transform: translateX(-6px);
+  transition:
+    opacity 220ms var(--ease),
+    transform 420ms var(--ease);
+}
+.px-select-item[data-highlighted] {
+  color: oklch(1 0 0);
+}
+.px-select-item[data-highlighted]::before {
+  opacity: 1;
+  transform: none;
+}
+.px-select-item[data-selected] {
+  color: var(--brand);
+}
+.px-select-item[data-selected][data-highlighted] {
+  color: oklch(0.95 0.08 160);
+}
+/* Pixel cursor: a tiny stepped arrow. */
+.px-cursor {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  width: 7px;
+  height: 11px;
+  background: var(--brand);
+  clip-path: polygon(0 0, 2px 0, 2px 2px, 4px 2px, 4px 4px, 6px 4px, 6px 6px, 4px 6px, 4px 8px, 2px 8px, 2px 10px, 0 10px);
+  translate: -7px -50%;
+  opacity: 0;
+  transition:
+    translate 380ms var(--px-overshoot),
+    opacity 200ms var(--ease);
+}
+.px-select-item[data-highlighted] .px-cursor {
+  translate: 0 -50%;
+  opacity: 1;
+}
+.px-select-tick {
+  display: grid;
+  place-items: center;
+  color: var(--brand);
+}
+.px-tag {
+  flex-shrink: 0;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: oklch(0.86 0.13 85);
+  background: oklch(0.8 0.15 85 / 16%);
+  clip-path: var(--px-cut-sm);
+}
+
+/* ---------- Switch ---------- */
+.px-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 46px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+  transition: transform 300ms var(--ease);
+}
+.px-switch:active:not([data-disabled]) {
+  transform: translateY(1px);
+}
+.px-switch[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+/* Recessed track: a darker band on top fakes the inset. */
+.px-switch::before,
+.px-switch::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: var(--px-cut);
+}
+.px-switch::before {
+  background: linear-gradient(180deg, oklch(0.1 0.012 250) 0 4px, oklch(0.3 0.026 250) 4px calc(100% - 2px), oklch(0.4 0.03 250) calc(100% - 2px));
+}
+/* "On" colour fades in over the track (gradients cannot be transitioned directly). */
+.px-switch::after {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--brand) 55%, black) 0 4px,
+    var(--brand) 4px calc(100% - 3px),
+    color-mix(in oklch, var(--brand) 78%, black) calc(100% - 3px)
+  );
+  opacity: 0;
+  transition: opacity 420ms var(--ease);
+}
+.px-switch[data-checked]::after {
+  opacity: 1;
+}
+.px-switch:focus-visible {
+  filter: drop-shadow(0 0 0 transparent);
+  outline: 2px solid color-mix(in oklch, var(--brand) 70%, transparent);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+.px-switch-thumb {
+  position: absolute;
+  z-index: 1;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  clip-path: var(--px-cut-sm);
+  background: linear-gradient(180deg, oklch(1 0 0) 0 2px, oklch(0.93 0.01 250) 2px calc(100% - 3px), oklch(0.72 0.02 250) calc(100% - 3px));
+  transition: transform 520ms var(--px-overshoot);
+  transform-origin: left center;
+}
+.px-switch-thumb[data-checked] {
+  transform: translateX(20px);
+  transform-origin: right center;
+}
+/* Squash the thumb a little while it is pressed. */
+.px-switch:active:not([data-disabled]) .px-switch-thumb {
+  transform: scaleX(1.22);
+}
+.px-switch:active:not([data-disabled]) .px-switch-thumb[data-checked] {
+  transform: translateX(20px) scaleX(1.22);
+}
+
+/* ---------- Checkbox ---------- */
+.px-checkbox {
+  position: relative;
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+  --px-on: var(--brand);
+  transition: transform 300ms var(--ease);
+}
+.px-checkbox[data-tone="danger"] {
+  --px-on: oklch(0.68 0.2 25);
+}
+.px-checkbox:active {
+  transform: scale(0.9);
+}
+.px-checkbox::before,
+.px-checkbox::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: var(--px-cut-sm);
+}
+.px-checkbox::before {
+  background: linear-gradient(180deg, oklch(0.1 0.012 250) 0 3px, oklch(0.36 0.03 250) 3px calc(100% - 2px), oklch(0.46 0.035 250) calc(100% - 2px));
+  transition: filter 300ms var(--ease);
+}
+.px-checkbox:hover::before {
+  filter: brightness(1.5);
+}
+.px-checkbox::after {
+  background: linear-gradient(180deg, color-mix(in oklch, var(--px-on) 55%, black) 0 3px, var(--px-on) 3px calc(100% - 3px), color-mix(in oklch, var(--px-on) 75%, black) calc(100% - 3px));
+  opacity: 0;
+  transition: opacity 320ms var(--ease);
+}
+.px-checkbox[data-checked]::after {
+  opacity: 1;
+}
+.px-checkbox:focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--px-on) 70%, transparent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+.px-checkbox-mark {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  color: oklch(0.14 0.03 160);
+  transform: scale(0);
+  transition: transform 420ms var(--px-overshoot);
+}
+.px-checkbox[data-tone="danger"] .px-checkbox-mark {
+  color: white;
+}
+.px-checkbox-mark[data-checked] {
+  transform: scale(1);
+}
+
+/* ---------- Primary buttons: a tactile pixel edge (secondary ones stay glass) ---------- */
+.pill--brand {
+  box-shadow:
+    0 12px 36px -14px var(--brand),
+    inset 0 2px 0 oklch(1 0 0 / 46%),
+    inset 0 -4px 0 oklch(0.16 0.04 160 / 24%);
+}
+.pill--brand:hover {
+  box-shadow:
+    0 16px 44px -12px var(--brand),
+    inset 0 2px 0 oklch(1 0 0 / 52%),
+    inset 0 -4px 0 oklch(0.16 0.04 160 / 24%);
+}
+.pill--brand:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 6px 20px -12px var(--brand),
+    inset 0 2px 0 oklch(1 0 0 / 40%),
+    inset 0 -1px 0 oklch(0.16 0.04 160 / 24%);
+}
+.pill--danger {
+  box-shadow:
+    0 12px 36px -14px oklch(0.66 0.21 25),
+    inset 0 2px 0 oklch(1 0 0 / 34%),
+    inset 0 -4px 0 oklch(0.2 0.08 25 / 30%);
+}
+.pill--danger:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 6px 20px -12px oklch(0.66 0.21 25),
+    inset 0 2px 0 oklch(1 0 0 / 30%),
+    inset 0 -1px 0 oklch(0.2 0.08 25 / 30%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .px-select-item {
+    animation: none;
+    opacity: 1;
+  }
+  .px-select-popup,
+  .px-switch-thumb,
+  .px-checkbox-mark,
+  .px-cursor {
+    transition-duration: 1ms;
+  }
+}
