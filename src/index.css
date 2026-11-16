@@ -495,12 +495,37 @@ svg.lucide {
   inset: 0;
   transform-origin: left center;
 }
+/* Filled: follows the real number; the short linear tween just smooths the ~10 updates a second. */
+.px-bar > .px-bar-filled {
+  transition: transform 180ms linear;
+}
+/* Waiting (no numbers yet): a block sliding across. */
+.px-bar > .px-bar-waiting {
+  right: auto;
+  width: 34%;
+  animation:
+    shimmer 2.4s linear infinite,
+    px-slide 1.6s cubic-bezier(0.32, 0.72, 0, 1) infinite;
+}
+@keyframes px-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .px-glow,
   .px-clouds,
   .progress-shimmer {
     animation: none !important;
+  }
+  .px-bar > .px-bar-waiting {
+    right: 0;
+    width: auto;
+    opacity: 0.4;
   }
   .px-p {
     display: none;

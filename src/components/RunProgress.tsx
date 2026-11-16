@@ -2,21 +2,19 @@ import { AnimatePresence, motion } from 'motion/react'
 import { EASE } from '@/lib/motion'
 import { formatBytes, type Progress } from '@/lib/store'
 
-/** Segmented, Minecraft-style bar. The fill is a scaleX transform (GPU only). */
+/**
+ * Segmented, Minecraft-style bar, in plain CSS on purpose: a progress bar is information, not
+ * decoration, so it must keep working when the system asks for reduced motion. The waiting state
+ * and the filled state are different elements (different keys), so one can never leave its
+ * transform behind on the other.
+ */
 export function PixelBar({ value }: { value: number | null }) {
   return (
-    <div className="px-bar">
+    <div className="px-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={value === null ? undefined : Math.round(Math.min(1, Math.max(0, value)) * 100)}>
       {value === null ? (
-        <motion.div
-          className="px-bar-fill progress-shimmer"
-          style={{ right: 'auto', width: '34%' }}
-          animate={{ x: ['-100%', '300%'] }}
-          transition={{ repeat: Infinity, duration: 1.6, ease: EASE }}
-        />
+        <div key="waiting" className="px-bar-fill px-bar-waiting progress-shimmer" />
       ) : (
-        // Short tween: events arrive every ~100ms, and a long ease restarted each time
-        // never catches up, so the bar sat at half while the number said 100%.
-        <motion.div className="px-bar-fill progress-shimmer" initial={false} animate={{ scaleX: Math.max(0.015, Math.min(1, value)) }} transition={{ duration: value >= 1 ? 0.12 : 0.18, ease: 'linear' }} />
+        <div key="filled" className="px-bar-fill px-bar-filled progress-shimmer" style={{ transform: `scaleX(${Math.max(0.015, Math.min(1, value))})` }} />
       )}
     </div>
   )
