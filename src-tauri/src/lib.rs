@@ -1535,6 +1535,15 @@ async fn server_ping(id: String, state: State<'_, AppState>) -> CmdResult<server
     servers::ping(&entry.host, entry.port, Duration::from_secs(4)).await.map_err(err)
 }
 
+/// Would this saved server let a player with an offline account in, and if not, why not?
+/// It connects once like a player (as "VoxelCheck") and hangs up before playing.
+#[tauri::command]
+async fn server_check_login(id: String, state: State<'_, AppState>) -> CmdResult<servers::LoginCheck> {
+    let entry = state.0.settings.lock().unwrap().servers.iter().find(|s| s.id == id).cloned().ok_or("服务器不存在")?;
+    let status = servers::ping(&entry.host, entry.port, Duration::from_secs(4)).await.map_err(err)?;
+    servers::check_login(&entry.host, entry.port, status.protocol, Duration::from_secs(5)).await.map_err(err)
+}
+
 #[tauri::command]
 async fn screenshots_list(instance_id: String, state: State<'_, AppState>) -> CmdResult<Vec<screenshots::Screenshot>> {
     state.0.instance(&instance_id)?;
@@ -1664,6 +1673,7 @@ pub fn run() {
             server_add,
             server_remove,
             server_ping,
+            server_check_login,
             screenshots_list,
             screenshot_image,
             screenshot_delete,

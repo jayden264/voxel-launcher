@@ -215,3 +215,107 @@ async fn ping_inner(host: &str, port: u16) -> Result<ServerStatus> {
 pub async fn ping(host: &str, port: u16, timeout: Duration) -> Result<ServerStatus> {
     tokio::time::timeout(timeout, ping_inner(host, port)).await.map_err(|_| Error::Other("连接超时，服务器可能已离线".into()))?
 }
+
+// ------------------------------------------------------------- login check
+
+/// The name the check connects with, so a server's admin can tell what it was.
+pub const PROBE_NAME: &str = "VoxelCheck";
+
+/// What a server does when a player with an offline account tries to join.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum LoginCheck {
+    /// It let the player through: offline accounts can join.
+    Open,
+    /// It asks the player to prove they own the game, so an offline account cannot join.
+    OnlineOnly,
+    /// It only lets listed players in.
+    Whitelist,
+    /// It wants a different game version.
+    WrongVersion { reason: String },
+    Banned,
+    /// Turned away for another reason, in the server's own words.
+    Refused { reason: String },
+}
+
+fn mc_string(s: &str) -> Vec<u8> {
+    let mut v = varint(s.len() as u32);
+    v.extend(s.as_bytes());
+    v
+}
+
+/// The body of the "login start" packet, which changed shape several times:
+/// name only (up to 1.18), plus signature/uuid flags (1.19–1.20.1), name and uuid (1.20.2 on).
+pub fn login_start_body(protocol: i64, name: &str, uuid: [u8; 16]) -> Vec<u8> {
+    let mut b = mc_string(name);
+    match protocol {
+        ..=758 => {}
+        759 => b.push(0),
+        760 => b.extend([0, 0]),
+        761..=763 => {
+            b.push(1);
+            b.extend(uuid);
+        }
+        _ => b.extend(uuid),
+    }
+    b
+}
+
+fn classify_kick(text: &str) -> LoginCheck {
+    let t = text.to_lowercase();
+    let reason = text.trim().to_string();
+    if t.contains("white") || t.contains("白名单") {
+        LoginCheck::Whitelist
+    } else if t.contains("banned") || t.contains("封禁") || t.contains("被封") {
+        LoginCheck::Banned
+    } else if ["outdated", "incompatible", "please use", "unsupported", "update your", "版本"].iter().any(|k| t.contains(k)) {
+        LoginCheck::WrongVersion { reason }
+    } else if ["premium", "authenticat", "verify", "online mode", "online-mode", "正版", "session"].iter().any(|k| t.contains(k)) {
+        LoginCheck::OnlineOnly
+    } else {
+        LoginCheck::Refused { reason }
+    }
+}
+
+async fn check_login_inner(host: &str, port: u16, protocol: i64) -> Result<LoginCheck> {
+    let bare = host.trim_start_matches('[').trim_end_matches(']');
+    let mut s = TcpStream::connect((bare, port)).await.map_err(|e| Error::Other(format!("连不上服务器: {e}")))?;
+    // Handshake with the server's own protocol, asking for the login state.
+    let mut hs = varint(protocol as i32 as u32);
+    hs.extend(mc_string(host));
+    hs.extend(port.to_be_bytes());
+    hs.extend(varint(2));
+    s.write_all(&packet(0x00, &hs)).await?;
+    // Log in as a throwaway offline player, then (by returning) hang up without playing.
+    let uuid: [u8; 16] = hex::decode(crate::account::OfflineAccount::new(PROBE_NAME)?.uuid.replace('-', ""))
+        .ok()
+        .and_then(|b| b.try_into().ok())
+        .ok_or_else(|| Error::Other("无法生成检测用的离线账号".into()))?;
+    s.write_all(&packet(0x00, &login_start_body(protocol, PROBE_NAME, uuid))).await?;
+
+    let (id, body) = read_packet(&mut s).await?;
+    Ok(match id {
+        0x01 => LoginCheck::OnlineOnly,
+        // Login success, or "compression follows" which only comes on the way to success.
+        0x02 | 0x03 => LoginCheck::Open,
+        0x00 => {
+            let n = body.iter().position(|b| b & 0x80 == 0).map(|p| p + 1).unwrap_or(0);
+            let raw = body.get(n..).unwrap_or(&[]);
+            let text = serde_json::from_slice::<serde_json::Value>(raw)
+                .map(|v| {
+                    let mut out = String::new();
+                    flatten(&v, &mut out);
+                    out
+                })
+                .unwrap_or_else(|_| String::from_utf8_lossy(raw).into_owned());
+            classify_kick(&strip_codes(&text))
+        }
+        other => LoginCheck::Refused { reason: format!("服务器返回了意料之外的数据（包 {other:#x}）") },
+    })
+}
+
+/// Would this server let a player with an offline account in? Connects once the way a player would,
+/// reads the server's first answer and hangs up. Fails (never hangs) when the server is down or silent.
+pub async fn check_login(host: &str, port: u16, protocol: i64, timeout: Duration) -> Result<LoginCheck> {
+    tokio::time::timeout(timeout, check_login_inner(host, port, protocol)).await.map_err(|_| Error::Other("连接超时，服务器没有回应".into()))?
+}

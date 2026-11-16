@@ -219,6 +219,15 @@ export interface ServerStatus {
   favicon: string | null
 }
 
+/** How a server treats a player with an offline account. */
+export type LoginCheck =
+  | { kind: 'open' }
+  | { kind: 'online_only' }
+  | { kind: 'whitelist' }
+  | { kind: 'wrong_version'; reason: string }
+  | { kind: 'banned' }
+  | { kind: 'refused'; reason: string }
+
 export interface Screenshot {
   file: string
   /** Milliseconds since the epoch. */
@@ -448,6 +457,8 @@ const real = {
   serverAdd: (name: string, address: string) => call<Snapshot>('server_add', { name, address }),
   serverRemove: (id: string) => call<Snapshot>('server_remove', { id }),
   serverPing: (id: string) => call<ServerStatus>('server_ping', { id }),
+  /** Connect once like a player and see whether an offline account would get in. */
+  serverCheckLogin: (id: string) => call<LoginCheck>('server_check_login', { id }),
   screenshotsList: (instanceId: string) => call<Screenshot[]>('screenshots_list', { instanceId }),
   /** A scaled-down JPEG as a data URL: small for the grid, larger for viewing. */
   screenshotImage: (instanceId: string, file: string, maxWidth: number) => call<string>('screenshot_image', { instanceId, file, maxWidth }),
@@ -953,6 +964,10 @@ const fakeApi: typeof real = {
   serverRemove: async (id) => {
     mock.settings.servers = mock.settings.servers.filter((s) => s.id !== id)
     return structuredClone(mock)
+  },
+  serverCheckLogin: async (id) => {
+    await sleep(700)
+    return id === 'srv-1' ? { kind: 'online_only' } : { kind: 'open' }
   },
   serverPing: async (id) => {
     await sleep(500 + Math.random() * 900)

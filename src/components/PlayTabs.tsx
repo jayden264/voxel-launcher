@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
-import { ChevronLeft, ChevronRight, FolderOpen, Play, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, FolderOpen, Play, Plus, RefreshCw, ShieldQuestion, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { api, type Instance, type Screenshot, type ServerEntry, type ServerStatus } from '@/lib/api'
+import { api, type Instance, type LoginCheck, type Screenshot, type ServerEntry, type ServerStatus } from '@/lib/api'
 import { fmtAgo, fmtDateTime } from '@/lib/format'
 import { rise } from '@/lib/motion'
 import { formatBytes, useStore } from '@/lib/store'
@@ -28,8 +28,35 @@ function latencyTone(ms: number): 'brand' | 'warn' | 'bad' {
 
 type Ping = { kind: 'loading' } | { kind: 'ok'; st: ServerStatus } | { kind: 'down'; err: string }
 
+/** What a login check means for a player with an offline account, in plain words. */
+function describeLogin(c: LoginCheck): { text: string; tone: 'brand' | 'warn' | 'bad' | 'plain'; hint: string } {
+  switch (c.kind) {
+    case 'open':
+      return { text: '可以用离线账号进入', tone: 'brand', hint: '服务器没有要求验证正版。进去后可能还要按服务器的规则注册或登录。' }
+    case 'online_only':
+      return { text: '需要正版账号', tone: 'bad', hint: '这个服务器会验证账号是否为正版，离线账号会被拒绝。' }
+    case 'whitelist':
+      return { text: '有白名单', tone: 'warn', hint: '只有服务器管理员加进白名单的玩家才能进，需要联系管理员。' }
+    case 'wrong_version':
+      return { text: '游戏版本不匹配', tone: 'warn', hint: `服务器说：${c.reason}。换一个对应版本的实例再试。` }
+    case 'banned':
+      return { text: '被服务器拒绝（封禁）', tone: 'bad', hint: '服务器返回了封禁相关的提示。' }
+    case 'refused':
+      return { text: '服务器拒绝了连接', tone: 'warn', hint: `服务器说：${c.reason}` }
+  }
+}
+
 function ServerCard({ s, inst, idx, canJoin, onJoin, onRemove }: { s: ServerEntry; inst: Instance; idx: number; canJoin: boolean; onJoin: () => void; onRemove: () => void }) {
   const [ping, setPing] = useState<Ping>({ kind: 'loading' })
+  const [login, setLogin] = useState<LoginCheck | 'checking' | { error: string } | null>(null)
+  const [confirmJoin, setConfirmJoin] = useState(false)
+  const checkLogin = () => {
+    setLogin('checking')
+    api.serverCheckLogin(s.id).then(
+      (r) => setLogin(r),
+      (e) => setLogin({ error: msg(e) }),
+    )
+  }
   const run = useCallback(() => {
     setPing({ kind: 'loading' })
     api.serverPing(s.id).then(
@@ -74,6 +101,27 @@ function ServerCard({ s, inst, idx, canJoin, onJoin, onRemove }: { s: ServerEntr
                   {ping.st.version && <Chip>{ping.st.version}</Chip>}
                   {mismatch && <Chip tone="warn">服务器 {theirs} · 此实例 {mine}</Chip>}
                 </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {login === null && (
+                    <button
+                      type="button"
+                      onClick={checkLogin}
+                      title="相当于用 VoxelCheck 这个名字连一下服务器，再立刻断开，不会进入游戏"
+                      className="flex items-center gap-1.5 rounded-full bg-white/6 px-2.5 py-1 text-xs text-muted-foreground transition-colors duration-300 hover:bg-white/10 hover:text-foreground"
+                    >
+                      <ShieldQuestion className="size-3.5" />
+                      检测能不能用离线账号进
+                    </button>
+                  )}
+                  {login === 'checking' && <span className="animate-pulse text-xs text-muted-foreground">正在检测…</span>}
+                  {login !== null && login !== 'checking' && 'error' in login && <span className="text-xs text-amber-300">检测失败：{login.error}</span>}
+                  {login !== null && login !== 'checking' && 'kind' in login && (
+                    <>
+                      <Chip tone={describeLogin(login).tone}>{describeLogin(login).text}</Chip>
+                      <span className="text-xs text-muted-foreground">{describeLogin(login).hint}</span>
+                    </>
+                  )}
+                </div>
               </>
             )}
           </div>
@@ -84,8 +132,22 @@ function ServerCard({ s, inst, idx, canJoin, onJoin, onRemove }: { s: ServerEntr
             <button type="button" aria-label="删除服务器" title="删除" className={`${icon} hover:!bg-red-500/15 hover:!text-red-300`} onClick={onRemove}>
               <Trash2 className="size-4" />
             </button>
-            <PillButton size="sm" disabled={!canJoin} icon={<Play className="size-4 fill-current" />} onClick={onJoin} title={mismatch ? '版本可能不匹配，进不去时请换一个实例' : undefined}>
-              加入
+            <PillButton
+              size="sm"
+              tone={confirmJoin ? 'soft' : 'brand'}
+              disabled={!canJoin}
+              icon={<Play className="size-4 fill-current" />}
+              onClick={() => {
+                // Joining a server that checks accounts with an offline account just gets kicked: say so once.
+                if (login && typeof login === 'object' && 'kind' in login && login.kind === 'online_only' && !confirmJoin) {
+                  setConfirmJoin(true)
+                  return
+                }
+                onJoin()
+              }}
+              title={mismatch ? '版本可能不匹配，进不去时请换一个实例' : undefined}
+            >
+              {confirmJoin ? '仍然加入' : '加入'}
             </PillButton>
           </div>
         </div>
